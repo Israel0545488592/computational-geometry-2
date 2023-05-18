@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import combinations, product
 
 
 
@@ -21,17 +22,25 @@ def CH_3D(points: np.ndarray):
 
     ''' Randomized Incremental Algorithm for computing 3D - convex hull '''
 
-    # init the 1st 3 faces
-    confilctG = {} # (point, set(face)) map
-
     np.random.shuffle(points)
 
-    for p in points:
+    faces2points = { facet( * vxs) : set()  for vxs in combinations(points[:4], 3) }
+    points = points[4:]
+    points2faces = { pnt : set()  for pnt in points }
+
+    for pnt, face in product(points, faces2points):
+        if not face.sees(pnt): continue
+        points2faces[pnt].add(face)
+        faces2points[face].add(pnt)
+
+
+    for ind, pnt in enumerate(points):
 
         # get faces viewed by p and destroy them
 
         # build new facets with p and the horizon edges
 
-        confilctG # update
+        points2faces # update
+        faces2points
 
-    return sorted(confilctG.values(), key = "the ordered he asked for")
+    return sorted(faces2points, key = "the ordered he asked for")
