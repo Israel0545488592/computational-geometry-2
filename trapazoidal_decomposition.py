@@ -22,7 +22,11 @@ def CH_3D(points: np.ndarray):
 
     ''' Randomized Incremental Algorithm for computing 3D - convex hull '''
 
+    # 1. permuting randomly
+
     np.random.shuffle(points)
+
+    # 2. initiating conflict graph
 
     faces2points = { facet( * vxs) : set()  for vxs in combinations(points[:4], 3) }
     points = points[4:]
@@ -33,14 +37,27 @@ def CH_3D(points: np.ndarray):
         points2faces[pnt].add(face)
         faces2points[face].add(pnt)
 
+    # 3. executing the rest of the algo iterativly
 
     for ind, pnt in enumerate(points):
 
-        # get faces viewed by p and destroy them
+        conflicted_faces = points2faces[pnt]
+        if not conflicted_faces: continue
 
-        # build new facets with p and the horizon edges
+        # build new facets and updtae conflict graph acorrdingly
+        horizon_edges = []  # implement here, should be list of tuples of points
+        new_faces = [facet( * edge, pnt) for edge in horizon_edges]
+        for face in new_faces:
+            conflicted_points = {} # implement here
+            for cnf_pnt in conflicted_points:
+                points2faces[cnf_pnt].add(face)
+            faces2points[face].update(conflicted_points)
 
-        points2faces # update
-        faces2points
+        # deystroying faces in conflict
+        for face in conflicted_faces:
+            for observer_pnt in faces2points[face]:
+                points2faces[observer_pnt].remove(face)
+        del faces2points[face]
+
 
     return sorted(faces2points, key = "the ordered he asked for")
