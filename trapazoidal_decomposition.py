@@ -1,35 +1,40 @@
 import numpy as np
-from itertools import combinations, product
+from itertools import product
+from typing import Tuple
+Point = np.ndarray
 
 
 
 def fetch_data(src: str): return np.loadtxt(fname = src, skiprows = 1, converters = float, dtype = np.uint16)
 
-def orient2D(vx1, vx2, vx3) -> bool:      return np.linalg.det(np.vstack((np.ones(3), np.vstack((vx1, vx2, vx3)).transpose()))) > 0
-def orient3D(vx1, vx2, vx3, pnt) -> bool: return np.linalg.det(np.vstack((np.ones(4), np.vstack((vx1, vx2, vx3, pnt)).transpose()))) > 0
+def orient(vx1, vx2, vx3, pnt) -> bool: return np.linalg.det(np.vstack((np.ones(4), np.vstack((vx1, vx2, vx3, pnt)).transpose()))) > 0
 
 
 class facet:
 
-    def __init__(self, vx1, vx2, vx3):
-        self.vx1, self.vx2, self.vx3 = (vx1, vx2, vx3) if orient2D(vx1, vx2, vx3) else (vx3, vx2, vx1)
+    def __init__(self, vxs: Tuple[Point], refrence: Point, neighbours: Tuple['facet']):
 
-    # I think we need a boolen method method that tells us wether a point p 'sees' this facet
+        self.vxs = vxs if orient(* vxs, refrence) else tuple(reversed(vxs))
+        self.neibourhood = neighbours
 
+    def sees(self, refrence: Point) -> bool: return orient(* self.vxs, refrence)
+
+    def get_horizion(self, refrence: Point) -> Tuple['facet']: pass
 
 
 def CH_3D(points: np.ndarray):
 
     ''' Randomized Incremental Algorithm for computing 3D - convex hull '''
 
-    # 1. permuting randomly
+    # 1. permuting input randomly
 
     np.random.shuffle(points)
 
     # 2. initiating conflict graph
 
-    faces2points = { facet( * vxs) : set()  for vxs in combinations(points[:4], 3) }
-    points = points[4:]
+    start, points = points = points[:4], points[4:]
+
+    faces2points = { facet(* filter(lambda vx : vx != refrence), refrence) : set()  for refrence in start }
     points2faces = { pnt : set()  for pnt in points }
 
     for pnt, face in product(points, faces2points):
@@ -42,18 +47,13 @@ def CH_3D(points: np.ndarray):
     for ind, pnt in enumerate(points):
 
         conflicted_faces = points2faces[pnt]
-        if not conflicted_faces: continue
 
-        # build new facets and updtae conflict graph acorrdingly
-        horizon_edges = []  # implement here, should be list of tuples of points
-        new_faces = [facet( * edge, pnt) for edge in horizon_edges]
-        for face in new_faces:
-            conflicted_points = {} # implement here
-            for cnf_pnt in conflicted_points:
-                points2faces[cnf_pnt].add(face)
-            faces2points[face].update(conflicted_points)
+        horizon = [face.get_horizon(pnt) for face in conflicted_faces] # horizon edges
 
-        # deystroying faces in conflict
+        # add new faces, we also need to connect them to the old faceses neighbours
+        new_faces = []
+
+        # deystroying old faces
         for face in conflicted_faces:
             for observer_pnt in faces2points[face]:
                 points2faces[observer_pnt].remove(face)
